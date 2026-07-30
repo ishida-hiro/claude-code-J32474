@@ -155,14 +155,6 @@ resource "aws_instance" "this" {
   iam_instance_profile   = aws_iam_instance_profile.this.name
   key_name               = var.ssh_public_key != "" ? aws_key_pair.this[0].key_name : null
 
-  user_data = templatefile("${path.module}/user_data.sh.tftpl", {
-    node_version = var.node_version
-    nvm_version  = var.nvm_version
-    timezone     = var.timezone
-    env_vars     = var.instance_environment
-  })
-  user_data_replace_on_change = true
-
   # IMDSv2 を強制（設定ドリフト・SSRF 対策）
   metadata_options {
     http_endpoint = "enabled"

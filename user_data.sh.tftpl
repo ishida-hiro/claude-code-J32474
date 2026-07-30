@@ -1,0 +1,58 @@
+#!/bin/bash
+set -euxo pipefail
+
+# ---------------------------------------------------------------------------
+# Claude Code 稼働環境の初期セットアップ (Ubuntu 24.04 LTS)
+#   Terraform の templatefile() から生成される。以下は注入される値:
+#     node_version = ${node_version}
+#     nvm_version  = ${nvm_version}
+#     timezone     = ${timezone}
+#
+# 注意:
+#   - Claude Code の認証はブラウザ OAuth を伴う対話処理のため自動化しない。
+#     プロビジョニング後に手動で `claude` を起動して認証する（手順書参照）。
+#   - 認証情報・トークンは user_data / 環境変数に一切含めないこと。
+# ---------------------------------------------------------------------------
+
+export DEBIAN_FRONTEND=noninteractive
+
+# タイムゾーン設定
+timedatectl set-timezone "${timezone}" || true
+
+apt-get update -y
+apt-get install -y git curl ca-certificates
+
+# SSM Agent は Canonical 公式 Ubuntu AMI に snap で同梱済み。念のため起動を保証。
+if snap list amazon-ssm-agent >/dev/null 2>&1; then
+  snap start amazon-ssm-agent || true
+fi
+
+# --- 永続的な環境変数（ログインシェルで有効。※機密は入れないこと）-----------
+cat > /etc/profile.d/claude-code-env.sh <<'EOF_ENV'
+%{ for key, value in env_vars ~}
+export ${key}="${value}"
+%{ endfor ~}
+EOF_ENV
+chmod 644 /etc/profile.d/claude-code-env.sh
+
+# --- Node.js + Claude Code を ubuntu ユーザに導入 ---------------------------
+sudo -u ubuntu bash <<'EOSU'
+set -euxo pipefail
+export HOME=/home/ubuntu
+
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/${nvm_version}/install.sh | bash
+
+export NVM_DIR="$$HOME/.nvm"
+# shellcheck disable=SC1091
+[ -s "$$NVM_DIR/nvm.sh" ] && . "$$NVM_DIR/nvm.sh"
+
+nvm install "${node_version}"
+nvm alias default "${node_version}"
+
+npm install -g @anthropic-ai/claude-code
+
+node -v
+claude --version || true
+EOSU
+
+echo "Claude Code environment setup completed." > /var/log/claude-code-setup.log

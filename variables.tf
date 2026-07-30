@@ -62,3 +62,34 @@ variable "ssh_public_key" {
   type        = string
   default     = ""
 }
+
+# --- 初期セットアップ（user_data）用 ---------------------------------------
+variable "node_version" {
+  description = "nvm でインストールする Node.js のバージョン指定（例: lts/*, 22, 20.11.0）"
+  type        = string
+  default     = "lts/*"
+}
+
+variable "nvm_version" {
+  description = "導入する nvm のバージョンタグ"
+  type        = string
+  default     = "v0.40.1"
+}
+
+variable "timezone" {
+  description = "インスタンスのタイムゾーン"
+  type        = string
+  default     = "Asia/Tokyo"
+}
+
+variable "instance_environment" {
+  description = <<-EOT
+    インスタンスに永続設定する環境変数のマップ。
+    /etc/profile.d/claude-code-env.sh に書き出され、ログインシェルで有効になる。
+    ★機密情報（API キー・トークン等）は絶対に入れないこと（user_data はメタデータ経由で参照され得るため）。
+  EOT
+  type        = map(string)
+  default = {
+    TZ = "Asia/Tokyo"
+  }
+}
