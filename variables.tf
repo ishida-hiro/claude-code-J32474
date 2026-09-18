@@ -93,3 +93,26 @@ variable "instance_environment" {
     TZ = "Asia/Tokyo"
   }
 }
+
+# --- 自動停止スケジュール ---------------------------------------------------
+variable "enable_auto_stop" {
+  description = "EventBridge Scheduler による EC2 の自動停止を有効にするか"
+  type        = bool
+  default     = true
+}
+
+variable "auto_stop_schedule" {
+  description = <<-EOT
+    自動停止のスケジュール式（cron または rate）。
+    既定は毎日 22:00（auto_stop_timezone のタイムゾーン基準）。
+    cron の書式は cron(分 時 日 月 曜日 年) で、日と曜日のどちらかは ? にする。
+  EOT
+  type        = string
+  default     = "cron(0 22 * * ? *)"
+}
+
+variable "auto_stop_timezone" {
+  description = "auto_stop_schedule を解釈するタイムゾーン"
+  type        = string
+  default     = "Asia/Tokyo"
+}

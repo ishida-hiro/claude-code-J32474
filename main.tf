@@ -187,3 +187,69 @@ resource "aws_eip" "this" {
 
   tags = merge(local.tags, { Name = "${var.project_name}-eip" })
 }
+
+#############################################
+# 自動停止（EventBridge Scheduler → EC2 StopInstances）
+#############################################
+data "aws_iam_policy_document" "scheduler_assume" {
+  count = var.enable_auto_stop ? 1 : 0
+
+  statement {
+    actions = ["sts:AssumeRole"]
+    principals {
+      type        = "Service"
+      identifiers = ["scheduler.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "auto_stop" {
+  count              = var.enable_auto_stop ? 1 : 0
+  name               = "${var.project_name}-auto-stop-role"
+  assume_role_policy = data.aws_iam_policy_document.scheduler_assume[0].json
+  tags               = local.tags
+}
+
+# 対象インスタンスの停止のみを許可（最小権限）
+data "aws_iam_policy_document" "auto_stop" {
+  count = var.enable_auto_stop ? 1 : 0
+
+  statement {
+    actions   = ["ec2:StopInstances"]
+    resources = [aws_instance.this.arn]
+  }
+}
+
+resource "aws_iam_role_policy" "auto_stop" {
+  count  = var.enable_auto_stop ? 1 : 0
+  name   = "${var.project_name}-auto-stop"
+  role   = aws_iam_role.auto_stop[0].id
+  policy = data.aws_iam_policy_document.auto_stop[0].json
+}
+
+resource "aws_scheduler_schedule" "auto_stop" {
+  count       = var.enable_auto_stop ? 1 : 0
+  name        = "${var.project_name}-auto-stop"
+  description = "毎日 ${var.auto_stop_timezone} の指定時刻に EC2 を停止する"
+  group_name  = "default"
+
+  schedule_expression          = var.auto_stop_schedule
+  schedule_expression_timezone = var.auto_stop_timezone
+
+  flexible_time_window {
+    mode = "OFF"
+  }
+
+  target {
+    arn      = "arn:aws:scheduler:::aws-sdk:ec2:stopInstances"
+    role_arn = aws_iam_role.auto_stop[0].arn
+
+    input = jsonencode({
+      InstanceIds = [aws_instance.this.id]
+    })
+
+    retry_policy {
+      maximum_retry_attempts = 3
+    }
+  }
+}

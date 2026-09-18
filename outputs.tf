@@ -19,3 +19,10 @@ output "ssh_command" {
     "ssh -i <your-key.pem> ubuntu@${aws_eip.this.public_ip}"
   ) : "n/a (ssh_public_key 未設定)"
 }
+
+output "auto_stop_schedule" {
+  description = "自動停止スケジュール（無効時は n/a）"
+  value = var.enable_auto_stop ? (
+    "${var.auto_stop_schedule} (${var.auto_stop_timezone})"
+  ) : "n/a (enable_auto_stop=false)"
+}
