@@ -26,3 +26,11 @@ output "auto_stop_schedule" {
     "${var.auto_stop_schedule} (${var.auto_stop_timezone})"
   ) : "n/a (enable_auto_stop=false)"
 }
+
+# 自動起動を有効化したときに合わせてコメントを外す（main.tf / variables.tf も同様）
+# output "auto_start_schedule" {
+#   description = "自動起動スケジュール（無効時は n/a）"
+#   value = var.enable_auto_start ? (
+#     "${var.auto_start_schedule} (${var.auto_start_timezone})"
+#   ) : "n/a (enable_auto_start=false)"
+# }

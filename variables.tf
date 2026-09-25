@@ -116,3 +116,28 @@ variable "auto_stop_timezone" {
   type        = string
   default     = "Asia/Tokyo"
 }
+
+# --- 自動起動スケジュール（現在は無効） -------------------------------------
+# main.tf の「自動起動」ブロックと合わせてコメントを外すと有効になる。
+#
+# variable "enable_auto_start" {
+#   description = "EventBridge Scheduler による EC2 の自動起動を有効にするか"
+#   type        = bool
+#   default     = true
+# }
+#
+# variable "auto_start_schedule" {
+#   description = <<-EOT
+#     自動起動のスケジュール式（cron または rate）。
+#     既定は平日 09:00（auto_start_timezone のタイムゾーン基準）。
+#     土日も起動したい場合は "cron(0 9 * * ? *)" にする。
+#   EOT
+#   type        = string
+#   default     = "cron(0 9 ? * MON-FRI *)"
+# }
+#
+# variable "auto_start_timezone" {
+#   description = "auto_start_schedule を解釈するタイムゾーン"
+#   type        = string
+#   default     = "Asia/Tokyo"
+# }

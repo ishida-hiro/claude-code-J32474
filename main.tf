@@ -253,3 +253,77 @@ resource "aws_scheduler_schedule" "auto_stop" {
     }
   }
 }
+
+#############################################
+# 自動起動（EventBridge Scheduler → EC2 StartInstances）
+#############################################
+# ★現在は無効（コメントアウト）。有効にするときは次の 3 か所のコメントを外す:
+#   1. この下のブロック（main.tf）
+#   2. variables.tf の「自動起動スケジュール」セクション
+#   3. outputs.tf の auto_start_schedule
+# 既定は平日 09:00 (Asia/Tokyo) 起動。停止側と同じく EC2 API を直接呼ぶ。
+# 有効化して push すると HCP Terraform の run が走り、毎朝インスタンスが起動して
+# 22:00 の自動停止まで課金が続く点に注意。
+#
+# data "aws_iam_policy_document" "auto_start_assume" {
+#   count = var.enable_auto_start ? 1 : 0
+#
+#   statement {
+#     actions = ["sts:AssumeRole"]
+#     principals {
+#       type        = "Service"
+#       identifiers = ["scheduler.amazonaws.com"]
+#     }
+#   }
+# }
+#
+# resource "aws_iam_role" "auto_start" {
+#   count              = var.enable_auto_start ? 1 : 0
+#   name               = "${var.project_name}-auto-start-role"
+#   assume_role_policy = data.aws_iam_policy_document.auto_start_assume[0].json
+#   tags               = local.tags
+# }
+#
+# # 対象インスタンスの起動のみを許可（最小権限）
+# data "aws_iam_policy_document" "auto_start" {
+#   count = var.enable_auto_start ? 1 : 0
+#
+#   statement {
+#     actions   = ["ec2:StartInstances"]
+#     resources = [aws_instance.this.arn]
+#   }
+# }
+#
+# resource "aws_iam_role_policy" "auto_start" {
+#   count  = var.enable_auto_start ? 1 : 0
+#   name   = "${var.project_name}-auto-start"
+#   role   = aws_iam_role.auto_start[0].id
+#   policy = data.aws_iam_policy_document.auto_start[0].json
+# }
+#
+# resource "aws_scheduler_schedule" "auto_start" {
+#   count       = var.enable_auto_start ? 1 : 0
+#   name        = "${var.project_name}-auto-start"
+#   description = "${var.auto_start_timezone} の指定時刻に EC2 を起動する"
+#   group_name  = "default"
+#
+#   schedule_expression          = var.auto_start_schedule
+#   schedule_expression_timezone = var.auto_start_timezone
+#
+#   flexible_time_window {
+#     mode = "OFF"
+#   }
+#
+#   target {
+#     arn      = "arn:aws:scheduler:::aws-sdk:ec2:startInstances"
+#     role_arn = aws_iam_role.auto_start[0].arn
+#
+#     input = jsonencode({
+#       InstanceIds = [aws_instance.this.id]
+#     })
+#
+#     retry_policy {
+#       maximum_retry_attempts = 3
+#     }
+#   }
+# }
