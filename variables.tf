@@ -10,6 +10,12 @@ variable "project_name" {
   default     = "claude-code-J32474"
 }
 
+variable "instance_name" {
+  description = "EC2 インスタンスの Name タグ"
+  type        = string
+  default     = "J32474-Code-Server"
+}
+
 variable "environment" {
   description = "環境タグ (dev / stg / prod)"
   type        = string

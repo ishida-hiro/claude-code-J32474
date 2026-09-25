@@ -181,7 +181,7 @@ resource "aws_instance" "this" {
     encrypted   = true
   }
 
-  tags = merge(local.tags, { Name = "${var.project_name}-ec2" })
+  tags = merge(local.tags, { Name = var.instance_name })
 
   # 作り直し防止の二重の歯止め。ami_id の固定を外してしまった場合でも、稼働中の
   # インスタンスが AMI の更新で置き換わることはない。
