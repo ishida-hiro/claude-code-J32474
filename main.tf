@@ -148,7 +148,10 @@ resource "aws_key_pair" "this" {
 # EC2 instance (Ubuntu)
 #############################################
 resource "aws_instance" "this" {
-  ami                    = data.aws_ami.ubuntu.id
+  # 既存インスタンスを作り直さないため AMI は変数で固定する。
+  # data.aws_ami.ubuntu は most_recent = true なので、Canonical が新しいイメージを
+  # 公開するたびに ID が変わり、ami は変更不可属性のため destroy/create になる。
+  ami                    = var.ami_id != "" ? var.ami_id : data.aws_ami.ubuntu.id
   instance_type          = var.instance_type
   subnet_id              = aws_subnet.public.id
   vpc_security_group_ids = [aws_security_group.this.id]
@@ -161,7 +164,10 @@ resource "aws_instance" "this" {
     timezone     = var.timezone
     env_vars     = var.instance_environment
   })
-  user_data_replace_on_change = true
+  # true だと user_data の差分でインスタンスが作り直される。初期セットアップは
+  # 適用済みで、ルート EBS 上の環境を失いたくないため false にしている。
+  # user_data を変更しても既存インスタンスには反映されない（再作成時のみ有効）。
+  user_data_replace_on_change = false
 
   # IMDSv2 を強制（設定ドリフト・SSRF 対策）
   metadata_options {
@@ -176,6 +182,14 @@ resource "aws_instance" "this" {
   }
 
   tags = merge(local.tags, { Name = "${var.project_name}-ec2" })
+
+  # 作り直し防止の二重の歯止め。ami_id の固定を外してしまった場合でも、稼働中の
+  # インスタンスが AMI の更新で置き換わることはない。
+  # OS イメージを入れ替えたいときは、この ignore_changes を一時的に外すか、
+  # 新しいインスタンスを別途作って移行すること。
+  lifecycle {
+    ignore_changes = [ami]
+  }
 }
 
 #############################################

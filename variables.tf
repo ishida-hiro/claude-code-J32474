@@ -22,6 +22,21 @@ variable "instance_type" {
   default     = "t3.medium"
 }
 
+variable "ami_id" {
+  description = <<-EOT
+    EC2 に使用する AMI ID。既存インスタンスを作り直さないために固定している。
+
+    空文字にすると data.aws_ami.ubuntu（Ubuntu 24.04 の最新公式 AMI）が使われるが、
+    Canonical が新しいイメージを公開するたびに ID が変わり、ami は変更不可属性の
+    ため plan が destroy/create（インスタンス作り直し）になる。ルート EBS 上の
+    環境を失うので、稼働中のインスタンスがある間は固定したままにすること。
+
+    現在の値は 2026-09-25 時点で稼働中のインスタンス i-048c3a4e26e01d980 の AMI。
+  EOT
+  type        = string
+  default     = "ami-0e239f7f4b3226722"
+}
+
 variable "root_volume_size" {
   description = "ルートボリュームサイズ (GiB)"
   type        = number
